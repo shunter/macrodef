@@ -43,7 +43,8 @@ namespace Macrodef
                     ExecuteInvocationTasks(invocationTasks);
                 }
 
-                RestoreProperties(_attributeList, _task, oldPropertyValues);
+                if (_attributeList != null)
+                    RestoreProperties(_attributeList, _task, oldPropertyValues);
             }
             finally
             {
