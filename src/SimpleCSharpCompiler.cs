@@ -13,19 +13,11 @@ namespace Macrodef
     // adapted from <script> task
     internal class SimpleCSharpCompiler
     {
-        private readonly string _uniqueIdentifier;
         private readonly CodeDomProvider _provider;
-        private string _runtimeVersion;
 
-        public SimpleCSharpCompiler(string uniqueIdentifier)
+        public SimpleCSharpCompiler()
         {
-            _uniqueIdentifier = uniqueIdentifier;
             _provider = CreateCodeDomProvider("Microsoft.CSharp.CSharpCodeProvider", "System");
-        }
-
-        public string PreCompiledDllPath
-        {
-            get { return OutputDllPath(); }
         }
 
         public string GetSourceCode(CodeCompileUnit compileUnit)
@@ -43,7 +35,6 @@ namespace Macrodef
                 {
                     GenerateExecutable = false,
                     GenerateInMemory = false, // <script> task uses true - and hence doesn't work properly (second script that contains task defs fails)!
-                    OutputAssembly = PreCompiledDllPath
                 };
 
             foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
@@ -63,13 +54,6 @@ namespace Macrodef
             }
 
             return options;
-        }
-
-        private string OutputDllPath()
-        {
-            var fileName = string.Format("{0}_{1}.dll", _uniqueIdentifier, _runtimeVersion);
-            
-            return Path.Combine(Path.GetTempPath(), fileName);
         }
 
         public Assembly CompileAssembly(CodeCompileUnit compileUnit)
@@ -104,8 +88,6 @@ namespace Macrodef
                 throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, ResourceUtils.GetString("NA2037"), assemblyName));
             }
 
-            _runtimeVersion = providerAssembly.ImageRuntimeVersion.Replace('.', '_');
-
             var providerType = providerAssembly.GetType(typeName, true, true);
             var provider = Activator.CreateInstance(providerType);
             
@@ -115,11 +97,6 @@ namespace Macrodef
             }
 
             return (CodeDomProvider) provider;
-        }
-
-        public bool PrecompiledDllExists()
-        {
-            return File.Exists(PreCompiledDllPath);
         }
     }
 }

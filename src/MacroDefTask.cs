@@ -3,8 +3,6 @@ using System.CodeDom;
 using System.Collections;
 using System.Globalization;
 using System.Reflection;
-using System.Security.Cryptography;
-using System.Text;
 using System.Xml;
 using NAnt.Core;
 using NAnt.Core.Attributes;
@@ -90,8 +88,6 @@ namespace Macrodef
         private readonly string _typeName = "nant" + Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture);
 
         private Assembly _compiledAssembly;
-        private XmlNode _macrodefNode;
-        private string _contentHash = string.Empty;
 
         public MacroDefTask()
         {
@@ -123,12 +119,6 @@ namespace Macrodef
         [TaskAttribute("name", Required = true)]
         public string TaskName { get; set; }
 
-        protected override void InitializeXml(XmlNode elementNode, PropertyDictionary properties, FrameworkInfo framework)
-        {
-            base.InitializeXml(elementNode, properties, framework);
-            _macrodefNode = elementNode;
-        }
-
         public static void ExecuteTask(string name, XmlNode xml, Task task)
         {
             var macrodef = (MacroDefTask)Macrodefs[name];
@@ -146,9 +136,6 @@ namespace Macrodef
         {
             if (Macrodefs.Contains(TaskName))
             {
-                if (GetUniqueIdentifier() != ((MacroDefTask)Macrodefs[TaskName]).GetUniqueIdentifier())
-                    throw new BuildException("Different MacroDef with the name : " + TaskName + " already exists. Cannot redefine.", Location);
-
                 Log(Level.Info, "macrodef \"{0}\" already included.", TaskName);
 
                 return;
@@ -156,43 +143,12 @@ namespace Macrodef
 
             Macrodefs[TaskName] = this;
 
-            var simpleCSharpCompiler = new SimpleCSharpCompiler(GetUniqueIdentifier());
-
-            if (simpleCSharpCompiler.PrecompiledDllExists())
-            {
-                TypeFactory.ScanAssembly(simpleCSharpCompiler.PreCompiledDllPath, this);
-            }
-            else
-            {
-                Log(Level.Info, "\"{0}\" New or Modified. Compiling.", TaskName);
-
-                var compileUnit = GenerateCode();
-                _compiledAssembly = simpleCSharpCompiler.CompileAssembly(compileUnit);
-                LogGeneratedCode(simpleCSharpCompiler, compileUnit);
-                TypeFactory.ScanAssembly(_compiledAssembly, this);
-            }
-        }
-
-        private string GetUniqueIdentifier()
-        {
-            if (string.IsNullOrEmpty(_contentHash))
-                _contentHash = GenerateHash(_macrodefNode);
-
-            return string.Format("mdef_{0}_{1}", TaskName, _contentHash);
-        }
-
-        // Create a hash from the definition of the macrodef and return it
-        private string GenerateHash(XmlNode xml)
-        {
-            var original = Encoding.UTF8.GetBytes(xml.InnerXml);
-            var algorithm = SHA256.Create();
-            var hashed = algorithm.ComputeHash(original);
-            var hashstring = new StringBuilder();
-
-            foreach (var @byte in hashed)
-                hashstring.AppendFormat("{0:x2}", @byte);   //convert to hex string
-
-            return hashstring.ToString();
+            var simpleCSharpCompiler = new SimpleCSharpCompiler();
+            
+            var compileUnit = GenerateCode();
+            _compiledAssembly = simpleCSharpCompiler.CompileAssembly(compileUnit);
+            LogGeneratedCode(simpleCSharpCompiler, compileUnit);
+            TypeFactory.ScanAssembly(_compiledAssembly, this);
         }
 
         private void LogGeneratedCode(SimpleCSharpCompiler simpleCSharpCompiler, CodeCompileUnit compileUnit)
