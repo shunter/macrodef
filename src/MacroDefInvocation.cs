@@ -65,7 +65,7 @@ namespace Macrodef
                     ReplaceMacroElementsInInvocationXml(element.ElementName, invocationTasks);
                 }
 
-                Log(Level.Verbose, "Effective macro definition: " + invocationTasks.InnerXml);
+                Log(Level.Verbose, "Effective macro definition: {0}", invocationTasks.InnerXml);
             }
 
             return invocationTasks;
@@ -73,7 +73,7 @@ namespace Macrodef
 
         private void ReplaceMacroElementsInInvocationXml(string elementName, XmlNode invocationTasks)
         {
-            var elementPlaceholders = invocationTasks.SelectNodes("nant:" + elementName, _task.NamespaceManager);
+            var elementPlaceholders = invocationTasks.SelectNodes("//nant:" + elementName, _task.NamespaceManager);
             
             Log(Level.Verbose, "Inserting {0} call(s) of '{1}' in {2}", elementPlaceholders.Count, elementName, invocationTasks.InnerXml);
 
